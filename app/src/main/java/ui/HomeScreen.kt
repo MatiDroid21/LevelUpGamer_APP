@@ -34,7 +34,8 @@ fun HomeScreen(){
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text(text = "Bienvenido a LevelUpGamer")
-            Button(onClick = {}) {
+            Button(onClick = {// aqui deberia poner algo
+            }) {
                 Text(text = "Presioname")
             }
             Image(
@@ -45,7 +46,6 @@ fun HomeScreen(){
                     .height(150.dp),
                 contentScale = ContentScale.Fit
             )
-
         }
     }
 }
