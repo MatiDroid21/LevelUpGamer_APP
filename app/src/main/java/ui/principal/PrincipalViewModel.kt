@@ -2,16 +2,18 @@ package ui.principal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import model.CarritoItem
 import model.Producto
 import model.productosDemo
+import java.text.NumberFormat
+import java.util.Currency
+import java.util.Locale
 
 data class PrincipalUiState(
-    val email: String? = "usuario@demo.com",
+    val email: String? = null,             // ← sin hardcode
     val loading: Boolean = false,
     val error: String? = null,
     val loggedOut: Boolean = false
@@ -19,13 +21,12 @@ data class PrincipalUiState(
 
 class PrincipalViewModel : ViewModel() {
 
-    // ---------- Estado general ----------
+    private val auth by lazy { FirebaseAuth.getInstance() } // ← fuente de verdad
+
     private val _ui = MutableStateFlow(PrincipalUiState())
     val ui: StateFlow<PrincipalUiState> = _ui.asStateFlow()
 
-    // ---------- Fuente y filtros ----------
     private val fuente: List<Producto> = productosDemo
-
     val categorias: List<String> = listOf("Todos") + fuente.map { it.categoria }.distinct()
 
     private val _categoriaSel = MutableStateFlow("Todos")
@@ -34,63 +35,74 @@ class PrincipalViewModel : ViewModel() {
     private val _productosFiltrados = MutableStateFlow<List<Producto>>(emptyList())
     val productosFiltrados: StateFlow<List<Producto>> = _productosFiltrados.asStateFlow()
 
-    // ---------- Carrito ----------
-    private val _carrito = MutableStateFlow<List<Producto>>(emptyList())
-    val carrito: StateFlow<List<Producto>> = _carrito.asStateFlow()
+    private val _carrito = MutableStateFlow<Map<Int, CarritoItem>>(emptyMap())
+    val carrito: StateFlow<List<CarritoItem>> =
+        _carrito.map { it.values.sortedBy { ci -> ci.producto.titulo } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun agregarAlCarrito(p: Producto) {
-        _carrito.update { it + p }
+    val totalItems: StateFlow<Int> =
+        _carrito.map { it.values.sumOf { ci -> ci.cantidad } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val totalCLP: StateFlow<Int> =
+        _carrito.map { it.values.sumOf { ci -> ci.cantidad * ci.producto.precioInt() } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    init {
+        refreshUserEmail() // ← sincroniza al crear el VM
     }
 
-    fun quitarDelCarrito(p: Producto) {
-        _carrito.update { it.filter { it.id != p.id } }
+    fun refreshUserEmail() {
+        _ui.update { it.copy(email = auth.currentUser?.email) }
     }
 
-    fun limpiarCarrito() {
-        _carrito.value = emptyList()
-    }
+    fun cantidadDe(id: Int): Int = _carrito.value[id]?.cantidad ?: 0
+    fun cantidadDeFlow(id: Int): Flow<Int> = _carrito.map { it[id]?.cantidad ?: 0 }
 
-    // ---------- Acciones ----------
-    fun setCategoria(cat: String) {
-        _categoriaSel.value = cat
-        aplicarFiltro()
-    }
-
-    /** Carga/recarga la grilla (desde productosDemo). */
-    fun cargarProductos() {
-        viewModelScope.launch {
-            _ui.value = _ui.value.copy(loading = true, error = null)
-            try {
-                aplicarFiltro()
-            } catch (e: Exception) {
-                _ui.value = _ui.value.copy(error = e.message ?: "Error al cargar productos")
-            } finally {
-                _ui.value = _ui.value.copy(loading = false)
+    fun agregarAlCarrito(p: Producto, delta: Int = 1) {
+        _carrito.update { curr ->
+            val item = curr[p.id]
+            val nueva = (item?.cantidad ?: 0) + delta
+            when {
+                nueva <= 0 -> curr - p.id
+                else -> curr + (p.id to CarritoItem(p, nueva))
             }
         }
     }
+    fun quitarDelCarrito(p: Producto) = agregarAlCarrito(p, -1)
+    fun setCantidad(p: Producto, cantidad: Int) = agregarAlCarrito(p, cantidad - cantidadDe(p.id))
+    fun limpiarCarrito() { _carrito.value = emptyMap() }
 
-    /** Reset al tocar Inicio: categoría base + recarga. */
-    fun refreshHome() {
-        _categoriaSel.value = "Todos"
-        cargarProductos()
+    fun setCategoria(cat: String) { _categoriaSel.value = cat; aplicarFiltro() }
+
+    fun cargarProductos() {
+        viewModelScope.launch {
+            _ui.update { it.copy(loading = true, error = null) }
+            try { aplicarFiltro() }
+            catch (e: Exception) { _ui.update { it.copy(error = e.message ?: "Error al cargar productos") } }
+            finally { _ui.update { it.copy(loading = false) } }
+        }
     }
+
+    fun refreshHome() { _categoriaSel.value = "Todos"; cargarProductos() }
 
     fun logout() {
-        _ui.value = _ui.value.copy(loading = true)
+        _ui.update { it.copy(loading = true) }
         viewModelScope.launch {
-            // Tu lógica real de logout iría aquí
-            _ui.value = _ui.value.copy(loading = false, loggedOut = true)
+            // lógica real de logout
+            _ui.update { it.copy(loading = false, loggedOut = true) }
         }
     }
 
-    // ---------- Helper ----------
     private fun aplicarFiltro() {
         val cat = _categoriaSel.value
-        _productosFiltrados.value = if (cat == "Todos") {
-            fuente
-        } else {
-            fuente.filter { it.categoria == cat }
-        }
+        _productosFiltrados.value = if (cat == "Todos") fuente else fuente.filter { it.categoria == cat }
     }
+}
+
+private fun Producto.precioInt(): Int = precio.filter(Char::isDigit).toIntOrNull() ?: 0
+fun Int.formateaCLP(): String {
+    val nf = NumberFormat.getCurrencyInstance(Locale("es","CL"))
+    nf.currency = Currency.getInstance("CLP"); nf.maximumFractionDigits = 0
+    return nf.format(this)
 }

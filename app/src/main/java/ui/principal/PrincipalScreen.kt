@@ -1,4 +1,5 @@
 package ui.principal
+
 import android.annotation.SuppressLint
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -10,11 +11,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
@@ -24,7 +23,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -34,6 +36,7 @@ import androidx.navigation.compose.rememberNavController
 import cl.duoc.levelupgamer.repository.auth.FirebaseAuthDataSource
 import data.media.MediaRepository
 import ui.principal.components.UiProductosCard
+import ui.principal.checkout.CheckoutScreen
 import ui.profile.ProfileScreen
 import ui.profile.ProfileViewModel
 import ui.vmfactory.ProfileVMFactory
@@ -42,12 +45,11 @@ import ui.vmfactory.ProfileVMFactory
 sealed class BottomItem(
     val route: String,
     val title: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val badge: Int? = null
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
 ) {
     data object Home : BottomItem("home", "Inicio", Icons.Outlined.Home)
     data object Favs : BottomItem("favs", "Favoritos", Icons.Outlined.FavoriteBorder)
-    data object Cart : BottomItem("cart", "Carrito", Icons.Outlined.ShoppingCart, badge = 3)
+    data object Cart : BottomItem("cart", "Carrito", Icons.Outlined.ShoppingCart)
     data object Agenda : BottomItem("agenda", "Agenda", Icons.Outlined.PlayArrow)
     data object More : BottomItem("more", "Más", Icons.Outlined.Menu)
 }
@@ -59,18 +61,19 @@ private val bottomItems = listOf(
 @Composable
 private fun BottomBar(
     navController: NavHostController,
-    onHomeTap: () -> Unit
+    onHomeTap: () -> Unit,
+    cartBadge: Int
 ) {
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
 
     NavigationBar {
         bottomItems.forEach { item ->
+            val isCart = item is BottomItem.Cart
             NavigationBarItem(
                 selected = currentRoute == item.route,
                 onClick = {
                     if (item.route == BottomItem.Home.route) {
-                        // SIEMPRE refrescamos Home y NO restauramos estado
                         onHomeTap()
                         navController.navigate(BottomItem.Home.route) {
                             popUpTo(navController.graph.startDestinationId) { saveState = false }
@@ -78,7 +81,6 @@ private fun BottomBar(
                             restoreState = false
                         }
                     } else {
-                        // Resto de tabs con preservación de estado
                         navController.navigate(item.route) {
                             popUpTo(navController.graph.startDestinationId) { saveState = true }
                             launchSingleTop = true
@@ -87,16 +89,15 @@ private fun BottomBar(
                     }
                 },
                 icon = {
-                    if ((item.badge ?: 0) > 0) {
-                        BadgedBox(badge = { Badge { Text("${item.badge}") } }) {
+                    if (isCart && cartBadge > 0) {
+                        BadgedBox(badge = { Badge { Text("$cartBadge") } }) {
                             Icon(item.icon, contentDescription = item.title)
                         }
                     } else {
                         Icon(item.icon, contentDescription = item.title)
                     }
                 },
-                label = { Text(item.title) },
-                colors = NavigationBarItemDefaults.colors()
+                label = { Text(item.title) }
             )
         }
     }
@@ -110,22 +111,31 @@ fun PrincipalScreen(
     vm: PrincipalViewModel = viewModel()
 ) {
     val state by vm.ui.collectAsState()
+    // Sincroniza el email al crear la pantalla
+    LaunchedEffect(Unit) { vm.refreshUserEmail() }
+    // Sincroniza al volver a esta vista
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) vm.refreshUserEmail()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     val categoriaSel by vm.categoriaSel.collectAsState()
     val productos by vm.productosFiltrados.collectAsState()
+    val totalItems by vm.totalItems.collectAsState()
 
     var expanded by remember { mutableStateOf(false) }
     val tabsNav = rememberNavController()
 
     // Logout reactivo
-    LaunchedEffect(state.loggedOut) {
-        if (state.loggedOut) onLogout()
-    }
+    LaunchedEffect(state.loggedOut) { if (state.loggedOut) onLogout() }
 
     // Snackbar para errores
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(state.error) {
-        state.error?.let { snackbarHostState.showSnackbar(it) }
-    }
+    LaunchedEffect(state.error) { state.error?.let { snackbarHostState.showSnackbar(it) } }
 
     Scaffold(
         topBar = {
@@ -145,11 +155,6 @@ fun PrincipalScreen(
                                 expanded = false
                                 tabsNav.navigate("profile")
                             },
-                            leadingIcon = { Icon(Icons.Outlined.Info, contentDescription = null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Configuración") },
-                            onClick = { expanded = false },
                             leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) }
                         )
                         DropdownMenuItem(
@@ -163,7 +168,7 @@ fun PrincipalScreen(
                 }
             )
         },
-        bottomBar = { BottomBar(tabsNav, onHomeTap = { vm.refreshHome() }) },
+        bottomBar = { BottomBar(tabsNav, onHomeTap = { vm.refreshHome() }, cartBadge = totalItems) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { inner ->
         NavHost(
@@ -173,10 +178,7 @@ fun PrincipalScreen(
         ) {
             // HOME
             composable(route = BottomItem.Home.route) {
-                // Carga inicial en el primer ingreso
-                LaunchedEffect(Unit) {
-                    if (productos.isEmpty()) vm.cargarProductos()
-                }
+                LaunchedEffect(Unit) { if (productos.isEmpty()) vm.cargarProductos() }
 
                 Column(
                     modifier = Modifier
@@ -215,20 +217,18 @@ fun PrincipalScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .aspectRatio(0.6f)
+                                    .aspectRatio(0.66f)
                                     .animateContentSize()
                             ) {
+                                // OBSERVA qty COMO STATE: recomposición inmediata
+                                val qty by vm.cantidadDeFlow(producto.id).collectAsState(initial = 0)
+
                                 UiProductosCard(
                                     producto = producto,
-                                    onAgregar = { p ->
-                                        if (vm.carrito.value.contains(p)) {
-                                            vm.quitarDelCarrito(p)
-                                        } else {
-                                            vm.agregarAlCarrito(p)
-                                        }
-                                    }
+                                    qty = qty,
+                                    onIncrement = { vm.agregarAlCarrito(producto, +1) },
+                                    onDecrement = { vm.quitarDelCarrito(producto) }
                                 )
-
                             }
                         }
                     }
@@ -244,41 +244,76 @@ fun PrincipalScreen(
 
             // CARRITO
             composable(BottomItem.Cart.route) {
-                val carrito by vm.carrito.collectAsState()
+                val items by vm.carrito.collectAsState()
+                val total by vm.totalCLP.collectAsState()
+
                 Column(Modifier.fillMaxSize().padding(16.dp)) {
                     Text("Carrito", style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(8.dp))
 
-                    if (carrito.isEmpty()) {
+                    if (items.isEmpty()) {
                         Text("No hay productos en el carrito")
                     } else {
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(carrito) { p ->
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            items(items, key = { it.producto.id }) { item ->
                                 Row(
                                     Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("${p.titulo} - ${p.precio}")
-                                    Button(onClick = { vm.quitarDelCarrito(p) }) {
-                                        Text("Quitar")
+                                    Column(Modifier.weight(1f)) {
+                                        Text(item.producto.titulo, style = MaterialTheme.typography.titleMedium)
+                                        Text(item.producto.precio, style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        IconButton(
+                                            onClick = { vm.quitarDelCarrito(item.producto) },
+                                            enabled = item.cantidad > 1
+                                        ) { Icon(Icons.Outlined.Close, contentDescription = "Menos") }
+
+                                        Text("${item.cantidad}", style = MaterialTheme.typography.titleMedium)
+
+                                        IconButton(onClick = { vm.agregarAlCarrito(item.producto, +1) }) {
+                                            Icon(Icons.Outlined.ShoppingCart, contentDescription = "Más")
+                                        }
+
+                                        Spacer(Modifier.width(8.dp))
+
+                                        val subtotal = (item.producto.precio.filter(Char::isDigit).toIntOrNull() ?: 0) * item.cantidad
+                                        Text(subtotal.formateaCLP(), style = MaterialTheme.typography.titleMedium)
+
+                                        IconButton(onClick = { vm.setCantidad(item.producto, 0) }) {
+                                            Icon(Icons.Outlined.Close, contentDescription = "Eliminar")
+                                        }
                                     }
                                 }
                             }
                         }
-                        val total = carrito.sumOf { it.precio.replace(".", "").toInt() }
-                        Spacer(Modifier.height(12.dp))
-                        Text("Total: $total CLP", style = MaterialTheme.typography.titleLarge)
+
+                        Spacer(Modifier.height(16.dp))
+                        Text("Total: ${total.formateaCLP()}", style = MaterialTheme.typography.titleLarge)
 
                         Spacer(Modifier.height(12.dp))
-                        Button(onClick = { vm.limpiarCarrito() }, Modifier.fillMaxWidth()) {
-                            Text("Vaciar carrito")
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Button(
+                                onClick = { tabsNav.navigate("checkout") },
+                                enabled = items.isNotEmpty(),
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Continuar compra") }
+
+                            FilledTonalButton(
+                                onClick = { vm.limpiarCarrito() },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Vaciar") }
                         }
                     }
                 }
             }
 
-
-            // RECORDATORIO
+            // AGENDA
             composable(BottomItem.Agenda.route) {
                 val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
                 if (uid == null) {
@@ -290,7 +325,7 @@ fun PrincipalScreen(
                     val factory = remember(key1 = uid) { ui.vmfactory.RecordatorioVMFactory(context, uid) }
                     val rvm: ui.recordatorio.RecordatorioViewModel =
                         androidx.lifecycle.viewmodel.compose.viewModel(factory = factory)
-                        ui.recordatorio.RecordatorioScreen(rvm)
+                    ui.recordatorio.RecordatorioScreen(rvm)
                 }
             }
 
@@ -319,6 +354,21 @@ fun PrincipalScreen(
                 val factory = remember { ProfileVMFactory(authDs, mediaRepo) }
                 val pvm: ProfileViewModel = viewModel(factory = factory)
                 ProfileScreen(pvm)
+            }
+
+            // CHECKOUT
+            composable("checkout") {
+                CheckoutScreen(
+                    vm = vm,
+                    onFinished = {
+                        vm.limpiarCarrito()
+                        tabsNav.navigate(BottomItem.Home.route) {
+                            popUpTo(BottomItem.Home.route) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    },
+                    onClose = { tabsNav.popBackStack() }
+                )
             }
         }
     }

@@ -39,7 +39,7 @@ val productosDemo = listOf(
     Producto(
         id = 4,
         titulo = "Mouse Gamer Logitech",
-        precio = "3.500 (1kg)",
+        precio = "20.000 ",
         imagenRes = R.drawable.logitech,
         categoria = "Perifericos",
         descripcion = "Aca se describe el producto"
