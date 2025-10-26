@@ -1,4 +1,3 @@
-// app/src/main/java/ui/principal/checkout/CheckoutScreen.kt
 package ui.principal.checkout
 
 import androidx.compose.foundation.layout.*
@@ -92,8 +91,14 @@ fun CheckoutScreen(
                             modifier = Modifier.weight(1f),
                             enabled = !state.placing
                         ) {
-                            if (state.placing) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                            else Text("Confirmar compra")
+                            if (state.placing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text("Confirmar compra")
+                            }
                         }
                     }
                     CheckoutStep.Exito -> {
@@ -103,7 +108,12 @@ fun CheckoutScreen(
             }
         }
     ) { inner ->
-        Column(Modifier.padding(inner).fillMaxSize()) {
+        Column(
+            Modifier
+                .padding(inner)
+                .imePadding()         // empuja el contenido cuando aparece el teclado
+                .fillMaxSize()
+        ) {
             LinearProgressIndicator(
                 progress = progresoPaso(state.step),
                 modifier = Modifier
@@ -113,8 +123,15 @@ fun CheckoutScreen(
 
             when (state.step) {
                 CheckoutStep.Resumen -> PasoResumen(state)
-                CheckoutStep.Envio -> PasoEnvio(state, onChange = cvm::updateAddress, onShipping = cvm::setShippingMethod)
-                CheckoutStep.Pago -> PasoPago(state, onPayment = cvm::setPaymentMethod)
+                CheckoutStep.Envio -> PasoEnvio(
+                    state = state,
+                    onChange = cvm::updateAddress,
+                    onShipping = cvm::setShippingMethod
+                )
+                CheckoutStep.Pago -> PasoPago(
+                    state = state,
+                    onPayment = cvm::setPaymentMethod
+                )
                 CheckoutStep.Confirmar -> PasoConfirmar(state)
                 CheckoutStep.Exito -> PasoExito(state, onFinished)
             }
@@ -130,7 +147,7 @@ fun CheckoutScreen(
 private fun PasoResumen(state: CheckoutUiState) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(state.items, key = { it.producto.id }) { item ->
@@ -168,41 +185,55 @@ private fun PasoEnvio(
     onChange: ((ShippingAddress) -> ShippingAddress) -> Unit,
     onShipping: (ShippingMethod) -> Unit
 ) {
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Campos sin dependencias “raras” para evitar errores de imports
-        OutlinedTextField(
-            value = state.address.nombre,
-            onValueChange = { v -> onChange { it.copy(nombre = v) } },
-            label = { Text("Nombre") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = state.address.telefono,
-            onValueChange = { v -> onChange { it.copy(telefono = v) } },
-            label = { Text("Teléfono") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = state.address.direccion,
-            onValueChange = { v -> onChange { it.copy(direccion = v) } },
-            label = { Text("Dirección") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = state.address.comuna,
-            onValueChange = { v -> onChange { it.copy(comuna = v) } },
-            label = { Text("Comuna") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = state.address.region,
-            onValueChange = { v -> onChange { it.copy(region = v) } },
-            label = { Text("Región") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Text("Método de envío", style = MaterialTheme.typography.titleMedium)
-        ShippingMethod.values().forEach { m ->
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            OutlinedTextField(
+                value = state.address.nombre,
+                onValueChange = { v -> onChange { it.copy(nombre = v) } },
+                label = { Text("Nombre") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = state.address.telefono,
+                onValueChange = { v -> onChange { it.copy(telefono = v) } },
+                label = { Text("Teléfono") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = state.address.direccion,
+                onValueChange = { v -> onChange { it.copy(direccion = v) } },
+                label = { Text("Dirección") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = state.address.comuna,
+                onValueChange = { v -> onChange { it.copy(comuna = v) } },
+                label = { Text("Comuna") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = state.address.region,
+                onValueChange = { v -> onChange { it.copy(region = v) } },
+                label = { Text("Región") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        item {
+            Text("Método de envío", style = MaterialTheme.typography.titleMedium)
+        }
+        items(ShippingMethod.values().toList()) { m ->
             FilterChip(
                 selected = state.shippingMethod == m,
                 onClick = { onShipping(m) },
@@ -229,10 +260,13 @@ private fun PasoPago(
         Asunto/Referencia: Orden pendiente
     """.trimIndent()
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Elige cómo pagar", style = MaterialTheme.typography.titleMedium)
-
-        PaymentMethod.values().forEach { m ->
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item { Text("Elige cómo pagar", style = MaterialTheme.typography.titleMedium) }
+        items(PaymentMethod.values().toList()) { m ->
             FilterChip(
                 selected = state.paymentMethod == m,
                 onClick = { onPayment(m) },
@@ -241,40 +275,49 @@ private fun PasoPago(
         }
 
         if (state.paymentMethod == PaymentMethod.Transferencia) {
-            Divider(Modifier.padding(vertical = 8.dp))
-            Text("Instrucciones de transferencia", style = MaterialTheme.typography.titleMedium)
-            Text(datosTransferencia, style = MaterialTheme.typography.bodySmall)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
-                    onClick = { clipboard.setText(AnnotatedString(datosTransferencia)) },
-                    modifier = Modifier.weight(1f)
-                ) { Text("Copiar datos") }
-                // Si luego quieren adjuntar comprobante, aquí va otro botón o picker.
+            item { Divider(Modifier.padding(vertical = 8.dp)) }
+            item { Text("Instrucciones de transferencia", style = MaterialTheme.typography.titleMedium) }
+            item { Text(datosTransferencia, style = MaterialTheme.typography.bodySmall) }
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(
+                        onClick = { clipboard.setText(AnnotatedString(datosTransferencia)) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Copiar datos")
+                    }
+                }
             }
-        }
-
-        if (state.paymentMethod == PaymentMethod.ContraEntrega) {
-            Divider(Modifier.padding(vertical = 8.dp))
-            Text(
-                "Pagarás al recibir tu pedido en la dirección indicada. Aceptamos efectivo y/o transferencia al momento de la entrega.",
-                style = MaterialTheme.typography.bodySmall
-            )
+        } else {
+            item { Divider(Modifier.padding(vertical = 8.dp)) }
+            item {
+                Text(
+                    "Pagarás al recibir tu pedido en la dirección indicada. Aceptamos efectivo y/o transferencia al momento de la entrega.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun PasoConfirmar(state: CheckoutUiState) {
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Revisa tu pedido", style = MaterialTheme.typography.titleMedium)
-        Text("Envío: ${state.shippingMethod.label}")
-        Text("Pago: ${state.paymentMethod.label}")
-        Text("Destinatario: ${state.address.nombre}")
-        Text("Dirección: ${state.address.direccion}, ${state.address.comuna}, ${state.address.region}")
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Total", style = MaterialTheme.typography.titleLarge)
-            Text("${state.total} CLP", style = MaterialTheme.typography.titleLarge)
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item { Text("Revisa tu pedido", style = MaterialTheme.typography.titleMedium) }
+        item { Text("Envío: ${state.shippingMethod.label}") }
+        item { Text("Pago: ${state.paymentMethod.label}") }
+        item { Text("Destinatario: ${state.address.nombre}") }
+        item { Text("Dirección: ${state.address.direccion}, ${state.address.comuna}, ${state.address.region}") }
+        item { Spacer(Modifier.height(8.dp)) }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Total", style = MaterialTheme.typography.titleLarge)
+                Text("${state.total} CLP", style = MaterialTheme.typography.titleLarge)
+            }
         }
     }
 }
