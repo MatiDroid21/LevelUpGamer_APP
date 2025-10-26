@@ -2,12 +2,15 @@ package ui.register
 
 import android.util.Patterns
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -25,7 +28,6 @@ fun RegistrarseScreen(
 ) {
     val state by vm.ui.collectAsState()
 
-    // Navegación reactiva: cuando registered = true → navegar (a Login)
     LaunchedEffect(state.registered) {
         if (state.registered) onRegistered()
     }
@@ -39,10 +41,21 @@ fun RegistrarseScreen(
     }
 
     Scaffold(
+        containerColor = Color(0xFF181840),
         topBar = {
             TopAppBar(
-                title = { Text("Registrarse") },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Atrás") } }
+                title = {
+                    Text(
+                        "REGÍSTRATE COMO GAMER",
+                        color = Color(0xFF42F5E3)
+                    )
+                },
+                navigationIcon = {
+                    TextButton(onClick = onBack) {
+                        Text("Atrás", color = Color(0xFF42F5E3))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF222C44))
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -51,59 +64,87 @@ fun RegistrarseScreen(
             modifier = Modifier
                 .padding(inner)
                 .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color(0xFF181840), Color(0xFF242851))
+                    )
+                )
         ) {
             Column(
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(24.dp)
                     .fillMaxWidth()
                     .align(Alignment.TopCenter),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 OutlinedTextField(
                     value = state.email,
                     onValueChange = vm::onEmailChange,
-                    label = { Text("Correo electrónico") },
+                    label = { Text("Correo electrónico", color = Color(0xFF42F5E3)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF1BA1FF),
+                        unfocusedBorderColor = Color(0xFF42F5E3),
+                        cursorColor = Color(0xFF42F5E3)
+                    )
                 )
                 OutlinedTextField(
                     value = state.password,
                     onValueChange = vm::onPasswordChange,
-                    label = { Text("Contraseña") },
+                    label = { Text("Contraseña", color = Color(0xFF42F5E3)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF1BA1FF),
+                        unfocusedBorderColor = Color(0xFF42F5E3),
+                        cursorColor = Color(0xFF42F5E3)
+                    )
                 )
                 OutlinedTextField(
                     value = state.confirm,
                     onValueChange = vm::onConfirmChange,
-                    label = { Text("Confirmar contraseña") },
+                    label = { Text("Confirmar contraseña", color = Color(0xFF42F5E3)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF1BA1FF),
+                        unfocusedBorderColor = Color(0xFF42F5E3),
+                        cursorColor = Color(0xFF42F5E3)
+                    )
                 )
 
                 if (state.error != null) {
-                    Text(state.error!!, color = MaterialTheme.colorScheme.error)
+                    Text(state.error!!, color = Color(0xFFFF357A))
                 }
 
                 Button(
                     onClick = vm::submit,
                     enabled = !state.loading,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1BA1FF),
+                        contentColor = Color.White
+                    )
                 ) {
-                    Text(if (state.loading) "Creando cuenta..." else "Crear cuenta")
+                    Text(
+                        if (state.loading) "Creando cuenta..." else "Crear cuenta",
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
                 }
             }
 
             if (state.loading) {
                 CircularProgressIndicator(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(48.dp)
+                    color = Color(0xFF42F5E3),
+                    modifier = Modifier.align(Alignment.Center).size(48.dp)
                 )
             }
         }

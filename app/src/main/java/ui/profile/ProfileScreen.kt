@@ -1,12 +1,12 @@
 package ui.profile
 
-
 import android.Manifest
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CameraAlt
@@ -14,6 +14,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
@@ -51,18 +53,49 @@ fun ProfileScreen(vm: ProfileViewModel) {
         pendingUri = null
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Perfil") }) }) { inner ->
+    Scaffold(
+        containerColor = Color(0xFF181840),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "PERFIL GAMER",
+                        color = Color(0xFF42F5E3),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF222C44))
+            )
+        }
+    ) { inner ->
         Column(
             Modifier
                 .padding(inner)
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.Start
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color(0xFF181840), Color(0xFF242851))
+                    )
+                )
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Correo: ${ui.email ?: "No disponible"}")
-            Text("UID: ${ui.uid ?: "No disponible"}")
-            Text("Nombre: ${ui.displayName ?: "No disponible"}")
+            Text(
+                "Correo: ${ui.email ?: "No disponible"}",
+                color = Color.White,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                "UID: ${ui.uid ?: "No disponible"}",
+                color = Color(0xFF42F5E3),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                "Nombre: ${ui.displayName ?: "No disponible"}",
+                color = Color(0xFFDB26ED),
+                style = MaterialTheme.typography.titleMedium
+            )
 
             if (ui.lastSavedPhoto != null) {
                 Image(
@@ -71,28 +104,35 @@ fun ProfileScreen(vm: ProfileViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(220.dp)
+                        .background(Color(0xFF222C44), shape = MaterialTheme.shapes.large)
+                        .padding(8.dp)
                 )
             }
 
-            OutlinedButton(onClick = {
-                if (!hasCamera) cameraPermLauncher.launch(Manifest.permission.CAMERA)
-                if (!hasRead) readPermLauncher.launch(readPerm)
-
-                val dest = vm.createDestinationUriForCurrentUser(context)
-                if (dest == null) {
-                    vm.setError("No se pudo crear destino (UID no disponible)")
-                    return@OutlinedButton
-                }
-                pendingUri = dest
-                takePictureLauncher.launch(dest)
-            }) {
-                Icon(Icons.Outlined.CameraAlt, contentDescription = null)
+            Button(
+                onClick = {
+                    if (!hasCamera) cameraPermLauncher.launch(Manifest.permission.CAMERA)
+                    if (!hasRead) readPermLauncher.launch(readPerm)
+                    val dest = vm.createDestinationUriForCurrentUser(context)
+                    if (dest == null) {
+                        vm.setError("No se pudo crear destino (UID no disponible)")
+                        return@Button
+                    }
+                    pendingUri = dest
+                    takePictureLauncher.launch(dest)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1BA1FF)),
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(50.dp)
+            ) {
+                Icon(Icons.Outlined.CameraAlt, contentDescription = null, tint = Color.White)
                 Spacer(Modifier.width(8.dp))
-                Text("Tomar foto y guardar en galería")
+                Text("Tomar foto y guardar en galería", color = Color.White)
             }
 
             ui.error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error)
+                Text(it, color = Color(0xFFFF357A), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
