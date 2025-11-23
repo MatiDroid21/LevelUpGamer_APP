@@ -10,11 +10,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cl.duoc.levelupgamer.data.local.UserPreferences
+
 import ui.principal.PrincipalViewModel
 import ui.principal.formateaCLP
 
@@ -25,12 +28,15 @@ fun CheckoutScreen(
     onFinished: () -> Unit,
     onClose: () -> Unit
 ) {
+    val context = LocalContext.current
+
     val cvm: CheckoutViewModel = viewModel(
         key = "checkout_vm",
         factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return CheckoutViewModel(vm) as T
+                val userPrefs = UserPreferences(context)
+                return CheckoutViewModel(vm, userPrefs) as T
             }
         }
     )
@@ -116,7 +122,7 @@ fun CheckoutScreen(
                 .fillMaxSize()
         ) {
             LinearProgressIndicator(
-                progress = progresoPaso(state.step),
+                progress = { progresoPaso(state.step) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -151,35 +157,35 @@ private fun PasoResumen(state: CheckoutUiState) {
         contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(state.items, key = { it.producto.idProducto ?: 0 }) { item -> // ⭐ CAMBIO: idProducto
+        items(state.items, key = { it.producto.idProducto ?: 0 }) { item ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
-                    "${item.producto.nombre} x${item.cantidad}", // ⭐ CAMBIO: nombre
+                    "${item.producto.nombre} x${item.cantidad}",
                     style = MaterialTheme.typography.bodyLarge
                 )
-                val subtotal = item.producto.precio * item.cantidad // ⭐ CAMBIO: precio es Double
-                Text(subtotal.formateaCLP(), style = MaterialTheme.typography.bodyLarge) // ⭐ CAMBIO: formateaCLP()
+                val subtotal = item.producto.precio * item.cantidad
+                Text(subtotal.formateaCLP(), style = MaterialTheme.typography.bodyLarge)
             }
         }
         item {
-            HorizontalDivider() // ⭐ CAMBIO: HorizontalDivider (Divider deprecated)
+            HorizontalDivider()
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Subtotal")
-                    Text(state.subtotal.formateaCLP()) // ⭐ CAMBIO: formateaCLP()
+                    Text(state.subtotal.formateaCLP())
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Envío")
-                    Text(state.shipping.formateaCLP()) // ⭐ CAMBIO: formateaCLP()
+                    Text(state.shipping.formateaCLP())
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Impuestos")
-                    Text(state.tax.formateaCLP()) // ⭐ CAMBIO: formateaCLP()
+                    Text(state.tax.formateaCLP())
                 }
                 HorizontalDivider()
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Total", style = MaterialTheme.typography.titleMedium)
-                    Text(state.total.formateaCLP(), style = MaterialTheme.typography.titleMedium) // ⭐ CAMBIO
+                    Text(state.total.formateaCLP(), style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
@@ -240,7 +246,7 @@ private fun PasoEnvio(
         item {
             Text("Método de envío", style = MaterialTheme.typography.titleMedium)
         }
-        items(ShippingMethod.entries.toList()) { m -> // ⭐ CAMBIO: entries en lugar de values()
+        items(ShippingMethod.entries.toList()) { m ->
             FilterChip(
                 selected = state.shippingMethod == m,
                 onClick = { onShipping(m) },
@@ -273,7 +279,7 @@ private fun PasoPago(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { Text("Elige cómo pagar", style = MaterialTheme.typography.titleMedium) }
-        items(PaymentMethod.entries.toList()) { m -> // ⭐ CAMBIO: entries
+        items(PaymentMethod.entries.toList()) { m ->
             FilterChip(
                 selected = state.paymentMethod == m,
                 onClick = { onPayment(m) },
@@ -323,7 +329,7 @@ private fun PasoConfirmar(state: CheckoutUiState) {
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Total", style = MaterialTheme.typography.titleLarge)
-                Text(state.total.formateaCLP(), style = MaterialTheme.typography.titleLarge) // ⭐ CAMBIO
+                Text(state.total.formateaCLP(), style = MaterialTheme.typography.titleLarge)
             }
         }
     }

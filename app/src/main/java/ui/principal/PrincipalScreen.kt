@@ -12,12 +12,12 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -48,14 +48,14 @@ sealed class BottomItem(
     val icon: androidx.compose.ui.graphics.vector.ImageVector
 ) {
     data object Home : BottomItem("home", "Inicio", Icons.Outlined.Home)
-    data object Favs : BottomItem("favs", "Favoritos", Icons.Outlined.FavoriteBorder)
+    data object Pedidos : BottomItem("pedidos", "Pedidos", Icons.Outlined.ShoppingBag)
     data object Cart : BottomItem("cart", "Carrito", Icons.Outlined.ShoppingCart)
     data object Agenda : BottomItem("agenda", "Agenda", Icons.Outlined.PlayArrow)
     data object More : BottomItem("more", "Más", Icons.Outlined.Menu)
 }
 
 private val bottomItems = listOf(
-    BottomItem.Home, BottomItem.Favs, BottomItem.Cart, BottomItem.Agenda, BottomItem.More
+    BottomItem.Home, BottomItem.Pedidos, BottomItem.Cart, BottomItem.Agenda, BottomItem.More
 )
 
 @Composable
@@ -127,7 +127,7 @@ fun PrincipalScreen(
 
     val categoriaSel by vm.categoriaSel.collectAsState()
     val productos by vm.productosFiltrados.collectAsState()
-    val categorias by vm.categorias.collectAsState() // ⭐ CAMBIO: StateFlow
+    val categorias by vm.categorias.collectAsState()
     val totalItems by vm.totalItems.collectAsState()
 
     var expanded by remember { mutableStateOf(false) }
@@ -189,7 +189,7 @@ fun PrincipalScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // ⭐ Saludo con nombre
+                    // Saludo con nombre
                     val saludo = if (state.nombre != null) {
                         "Hola ${state.nombre}"
                     } else if (state.email != null) {
@@ -204,7 +204,7 @@ fun PrincipalScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(vertical = 4.dp)
                     ) {
-                        items(categorias.size) { idx -> // ⭐ CAMBIO: usa categorias local
+                        items(categorias.size) { idx ->
                             val cat = categorias[idx]
                             FilterChip(
                                 selected = categoriaSel == cat,
@@ -214,7 +214,7 @@ fun PrincipalScreen(
                         }
                     }
 
-                    // ⭐ Mostrar loading
+                    // Mostrar loading
                     if (state.loading && productos.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -238,14 +238,15 @@ fun PrincipalScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp)
                         ) {
-                            items(productos, key = { it.idProducto ?: 0 }) { producto -> // ⭐ CAMBIO: idProducto
+                            items(productos, key = { it.idProducto ?: 0 }) { producto ->
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .aspectRatio(0.66f)
                                         .animateContentSize()
                                 ) {
-                                    val qty by vm.cantidadDeFlow(producto.idProducto ?: 0).collectAsState(initial = 0) // ⭐ CAMBIO: idProducto
+                                    val qty by vm.cantidadDeFlow(producto.idProducto ?: 0)
+                                        .collectAsState(initial = 0)
 
                                     UiProductosCard(
                                         producto = producto,
@@ -260,11 +261,9 @@ fun PrincipalScreen(
                 }
             }
 
-            // FAVORITOS
-            composable(BottomItem.Favs.route) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Favoritos")
-                }
+            // PEDIDOS
+            composable(BottomItem.Pedidos.route) {
+                ui.pedidos.PedidosScreen()
             }
 
             // CARRITO
@@ -285,15 +284,21 @@ fun PrincipalScreen(
                         }
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            items(items, key = { it.producto.idProducto ?: 0 }) { item -> // ⭐ CAMBIO: idProducto
+                            items(items, key = { it.producto.idProducto ?: 0 }) { item ->
                                 Row(
                                     Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(Modifier.weight(1f)) {
-                                        Text(item.producto.nombre, style = MaterialTheme.typography.titleMedium) // ⭐ CAMBIO: nombre
-                                        Text(item.producto.precio.formateaCLP(), style = MaterialTheme.typography.bodyMedium) // ⭐ CAMBIO: Double
+                                        Text(
+                                            item.producto.nombre,
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                        Text(
+                                            item.producto.precio.formateaCLP(),
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         IconButton(
@@ -309,7 +314,7 @@ fun PrincipalScreen(
 
                                         Spacer(Modifier.width(8.dp))
 
-                                        val subtotal = item.producto.precio * item.cantidad // ⭐ CAMBIO: precio es Double
+                                        val subtotal = item.producto.precio * item.cantidad
                                         Text(subtotal.formateaCLP(), style = MaterialTheme.typography.titleMedium)
 
                                         IconButton(onClick = { vm.setCantidad(item.producto, 0) }) {

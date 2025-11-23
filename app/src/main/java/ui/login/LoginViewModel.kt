@@ -1,12 +1,13 @@
 package cl.duoc.levelupgamer.ui.login
 
 import android.app.Application
+import android.util.Log
 import android.util.Patterns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-
+import cl.duoc.levelupgamer.data.local.UserPreferences
 import cl.duoc.levelupgamer.data.repository.AuthRepository
-import data.local.UserPreferences
+import com.google.firebase.auth.FirebaseAuth
 import data.model.UsuarioDTO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,11 +28,26 @@ class LoginViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
-    private val repo = AuthRepository()
     private val userPrefs = UserPreferences(application)
+    private val repo = AuthRepository(userPrefs)
 
     private val _ui = MutableStateFlow(LoginUiState())
     val ui: StateFlow<LoginUiState> = _ui
+
+    init {
+        // ⭐ SOLO verificar, NO sincronizar automáticamente
+        checkIfShouldAutoLogin()
+    }
+
+    /**
+     * Verifica si debe hacer auto-login (solo si está en otra pantalla)
+     * NO loguea automáticamente en la pantalla de login
+     */
+    private fun checkIfShouldAutoLogin() {
+        // Solo verifica, no hace nada
+        // El auto-login lo maneja un SplashScreen o MainActivity
+        Log.d("LoginViewModel", "🔍 Verificando sesión...")
+    }
 
     fun onEmailChange(v: String) = _ui.update {
         it.copy(email = v, error = null, message = null)
@@ -52,6 +68,9 @@ class LoginViewModel(
         return null
     }
 
+    /**
+     * Login híbrido (Firebase + API)
+     */
     fun submit() {
         val err = validar()
         if (err != null) {
@@ -62,16 +81,21 @@ class LoginViewModel(
         viewModelScope.launch {
             _ui.update { it.copy(loading = true, error = null, message = null) }
 
+            Log.d("LoginViewModel", "🔐 Intentando login con: ${_ui.value.email}")
+
             val result = repo.login(_ui.value.email, _ui.value.password)
 
             result.fold(
                 onSuccess = { usuario ->
-                    // ⭐ Guardar en SharedPreferences
-                    userPrefs.saveUser(
-                        email = usuario.email,
-                        nombre = usuario.nombre,
-                        idUsuario = usuario.idUsuario ?: -1
-                    )
+                    Log.d("LoginViewModel", "✅ Login exitoso: ${usuario.nombre}")
+
+                    if (usuario.idUsuario != null) {
+                        userPrefs.saveUser(
+                            email = usuario.email,
+                            nombre = usuario.nombre,
+                            idUsuario = usuario.idUsuario
+                        )
+                    }
 
                     _ui.update {
                         it.copy(
@@ -83,6 +107,7 @@ class LoginViewModel(
                     }
                 },
                 onFailure = { error ->
+                    Log.e("LoginViewModel", "❌ Error login: ${error.message}")
                     _ui.update {
                         it.copy(
                             loading = false,
@@ -96,5 +121,15 @@ class LoginViewModel(
 
     fun messageConsumed() {
         _ui.update { it.copy(message = null) }
+    }
+
+    /**
+     * Cerrar sesión
+     */
+    fun logout() {
+        Log.d("LoginViewModel", "🚪 Cerrando sesión")
+        repo.logout()
+        userPrefs.clearUser()
+        _ui.update { LoginUiState() }
     }
 }

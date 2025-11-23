@@ -16,6 +16,7 @@ interface UsuariosApiService {
         @Body loginRequest: LoginRequest
     ): Response<UsuarioDTO>
 
+
     @Multipart
     @POST("api/usuarios/registro")
     suspend fun registrar(
@@ -31,10 +32,8 @@ interface UsuariosApiService {
         @Part("codigoReferido") codigoReferido: RequestBody? = null
     ): Response<UsuarioDTO>
 
-    @GET("api/usuarios/{email}")
-    suspend fun obtenerPorEmail(
-        @Path("email") email: String
-    ): Response<UsuarioDTO>
+    @GET("api/usuarios/email/{email}")
+    suspend fun obtenerPorEmail(@Path("email") email: String): Response<UsuarioDTO>
 
     @GET("api/usuarios")
     suspend fun listarTodos(): Response<List<UsuarioDTO>>

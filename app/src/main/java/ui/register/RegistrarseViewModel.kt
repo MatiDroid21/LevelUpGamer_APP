@@ -4,8 +4,8 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import cl.duoc.levelupgamer.data.local.UserPreferences
 import cl.duoc.levelupgamer.data.repository.AuthRepository
-import data.local.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -34,8 +34,8 @@ class RegisterViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
-    private val repo = AuthRepository()
     private val userPrefs = UserPreferences(application)
+    private val repo = AuthRepository(userPrefs)  // PASAR userPrefs
     private val context = application
 
     private val _ui = MutableStateFlow(RegisterUiState())
@@ -93,7 +93,7 @@ class RegisterViewModel(
                     email = s.email,
                     contrasena = s.password,
                     fechaNacimiento = s.fechaNacimiento,
-                    idRol = 1L, // Rol de usuario normal
+                    idRol = 1L, //  Rol  = Usuario normal
                     direccion = s.direccion,
                     telefono = s.telefono,
                     fotoFile = fotoFile,
@@ -102,12 +102,15 @@ class RegisterViewModel(
 
                 result.fold(
                     onSuccess = { usuario ->
-                        // Guardar en SharedPreferences
-                        userPrefs.saveUser(
-                            email = usuario.email,
-                            nombre = usuario.nombre,
-                            idUsuario = usuario.idUsuario ?: -1
-                        )
+                        //  Ya no es necesario guardar aquí porque AuthRepository ya lo hace
+                        // Pero lo dejamos por seguridad
+                        if (usuario.idUsuario != null) {
+                            userPrefs.saveUser(
+                                email = usuario.email,
+                                nombre = usuario.nombre,
+                                idUsuario = usuario.idUsuario
+                            )
+                        }
 
                         _ui.update {
                             it.copy(

@@ -93,6 +93,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.foundation.layout)
     implementation(libs.androidx.foundation)
+    implementation(libs.androidx.room.ktx)
 
     // ❌ ELIMINA ESTA LÍNEA (está incorrecta)
     // implementation(libs.firebase.appdistribution.gradle)

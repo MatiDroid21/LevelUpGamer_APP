@@ -1,5 +1,6 @@
 package cl.duoc.levelupgamer.data.remote
 
+import data.remote.PedidosApiService
 import data.remote.ProductosApiService
 import data.remote.UsuariosApiService
 import okhttp3.OkHttpClient
@@ -13,6 +14,7 @@ object RetrofitClient {
     // ========== CONFIGURACIÓN ==========
     private const val USUARIOS_BASE_URL = "http://192.168.0.101:8080/"
     private const val PRODUCTOS_BASE_URL = "http://192.168.0.101:8081/"
+    private const val PEDIDOS_BASE_URL = "http://192.168.0.101:8083/"
     private const val API_KEY = "lvlupgamer1306"
 
     // ========== INTERCEPTORS COMUNES ==========
@@ -54,6 +56,14 @@ object RetrofitClient {
             .build()
     }
 
+    private val retrofitPedidos by lazy {
+        Retrofit.Builder()
+            .baseUrl(PEDIDOS_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
     // ========== API SERVICES ==========
     val usuariosService: UsuariosApiService by lazy {
         retrofitUsuarios.create(UsuariosApiService::class.java)
@@ -61,5 +71,9 @@ object RetrofitClient {
 
     val productosService: ProductosApiService by lazy {
         retrofitProductos.create(ProductosApiService::class.java)
+    }
+
+    val pedidosService: PedidosApiService by lazy {
+        retrofitPedidos.create(PedidosApiService::class.java)
     }
 }

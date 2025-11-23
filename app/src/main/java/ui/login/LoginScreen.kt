@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.levelupgamer.ui.login.LoginViewModel
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
@@ -20,12 +21,14 @@ fun LoginScreen(
 ) {
     val state by vm.ui.collectAsState()
 
-    // Navegación reactiva
+    // ⭐ Navegación reactiva al Home cuando loggedIn = true
     LaunchedEffect(state.loggedIn) {
-        if (state.loggedIn) onLoginSuccess()
+        if (state.loggedIn) {
+            onLoginSuccess()
+        }
     }
 
-    // Snackbar opcional
+    // Snackbar para mensajes
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(state.message) {
         state.message?.let {
@@ -38,7 +41,11 @@ fun LoginScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Login") },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Atrás") } }
+                navigationIcon = {
+                    TextButton(onClick = onBack) {
+                        Text("Atrás")
+                    }
+                }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -61,7 +68,8 @@ fun LoginScreen(
                     label = { Text("Correo electrónico") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.loading
                 )
 
                 OutlinedTextField(
@@ -71,11 +79,16 @@ fun LoginScreen(
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.loading
                 )
 
                 if (state.error != null) {
-                    Text(state.error!!, color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = state.error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
 
                 Button(

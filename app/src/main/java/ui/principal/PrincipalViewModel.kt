@@ -3,7 +3,7 @@ package ui.principal
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import data.local.UserPreferences
+import cl.duoc.levelupgamer.data.local.UserPreferences
 import data.model.ProductoDTO
 import data.repository.ProductoRepository
 
