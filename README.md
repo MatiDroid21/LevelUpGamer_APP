@@ -58,7 +58,7 @@ Ser la tienda online líder en productos para gamers en Chile, reconocida por su
 
 
 📎 Evidencia solicitada
-🖼️ Captura mostrando el APK firmado (carpeta /docs/screenshots)
+🖼️ Captura mostrando el APK firmado
 
 🔑 Archivo .jks guardado en /keys/lvlkey01.jks
 
