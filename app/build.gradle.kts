@@ -41,18 +41,13 @@ android {
         )
     }
 
-    // ⭐ SOLUCIÓN AL ERROR META-INF
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "META-INF/INDEX.LIST"
             excludes += "META-INF/DEPENDENCIES"
-            excludes += "META-INF/LICENSE"
-            excludes += "META-INF/LICENSE.txt"
-            excludes += "META-INF/license.txt"
-            excludes += "META-INF/NOTICE"
-            excludes += "META-INF/NOTICE.txt"
-            excludes += "META-INF/notice.txt"
+            excludes += "META-INF/LICENSE*"
+            excludes += "META-INF/NOTICE*"
             excludes += "META-INF/*.kotlin_module"
         }
     }
@@ -83,6 +78,7 @@ android {
 }
 
 dependencies {
+    // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -94,17 +90,6 @@ dependencies {
     implementation(libs.androidx.foundation.layout)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.room.ktx)
-
-    // ❌ ELIMINA ESTA LÍNEA (está incorrecta)
-    // implementation(libs.firebase.appdistribution.gradle)
-
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.2.0"))
@@ -137,18 +122,26 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.6")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
 
-    // Testing
-    testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
-    testImplementation("io.kotest:kotest-assertions-core:5.8.0")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+    // ========== TESTING UNITARIO (src/test) ==========
+    testImplementation(libs.junit)
     testImplementation("io.mockk:mockk:1.13.10")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     testImplementation("androidx.room:room-testing:$room_version")
 
+    // ========== TESTING INSTRUMENTADO (src/androidTest) ==========
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.6.2")
+    androidTestImplementation("io.mockk:mockk-android:1.13.10")
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test:core:1.5.0")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test:rules:1.5.0")
+
+    // Debug
+    debugImplementation(libs.androidx.ui.tooling)
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.6.2")
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
-}
