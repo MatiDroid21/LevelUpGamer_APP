@@ -20,7 +20,7 @@ class UserPreferences(context: Context) {
             putBoolean("isLoggedIn", true)
             apply()
         }
-        Log.d("UserPreferences", "💾 Usuario guardado - Email: $email, ID: $idUsuario")
+        Log.d("UserPreferences", " Usuario guardado - Email: $email, ID: $idUsuario")
     }
 
     // ========== GUARDAR SOLO EMAIL (para Firebase) ==========
@@ -30,7 +30,7 @@ class UserPreferences(context: Context) {
             putBoolean("isLoggedIn", true)
             apply()
         }
-        Log.d("UserPreferences", "💾 Email guardado: $email")
+        Log.d("UserPreferences", " Email guardado: $email")
     }
 
     // ========== GUARDAR NOMBRE ==========
@@ -39,22 +39,22 @@ class UserPreferences(context: Context) {
             putString("nombre", nombre)
             apply()
         }
-        Log.d("UserPreferences", "💾 Nombre guardado: $nombre")
+        Log.d("UserPreferences", " Nombre guardado: $nombre")
     }
 
-    // ⭐ AGREGAR: GUARDAR SOLO ID USUARIO (nuevo método)
+    // AGREGAR: GUARDAR SOLO ID USUARIO
     fun saveIdUsuario(idUsuario: Long) {
         prefs.edit().apply {
             putLong("idUsuario", idUsuario)
             apply()
         }
-        Log.d("UserPreferences", "💾 ID Usuario guardado: $idUsuario")
+        Log.d("UserPreferences", " ID Usuario guardado: $idUsuario")
     }
 
     // ========== OBTENER DATOS ==========
     fun getEmail(): String? {
         val email = prefs.getString("email", null)
-        Log.d("UserPreferences", "📖 Email obtenido: $email")
+        Log.d("UserPreferences", " Email obtenido: $email")
         return email
     }
 
@@ -64,7 +64,7 @@ class UserPreferences(context: Context) {
 
     fun getIdUsuario(): Long {
         val id = prefs.getLong("idUsuario", -1)
-        Log.d("UserPreferences", "📖 ID Usuario obtenido: $id")
+        Log.d("UserPreferences", "ID Usuario obtenido: $id")
         return id
     }
 
@@ -76,7 +76,7 @@ class UserPreferences(context: Context) {
     // ========== LIMPIAR USUARIO ==========
     fun clearUser() {
         prefs.edit().clear().apply()
-        Log.d("UserPreferences", "🗑️ Datos de usuario eliminados")
+        Log.d("UserPreferences", "🗑 Datos de usuario eliminados")
     }
 
 
