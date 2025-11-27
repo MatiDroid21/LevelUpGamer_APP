@@ -26,14 +26,14 @@ class AuthRepository(private val userPrefs: UserPreferences) {
     suspend fun login(email: String, contrasena: String): Result<UsuarioDTO> {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d("AuthRepository", "🔐 Login: $email")
+                Log.d("AuthRepository", "Login: $email")
 
                 // Autenticar con Firebase
                 val firebaseResult = firebaseAuth.signInWithEmailAndPassword(email, contrasena).await()
                 val firebaseUser = firebaseResult.user
                     ?: return@withContext Result.failure(Exception("Error de autenticación"))
 
-                Log.d("AuthRepository", "✅ Login Firebase OK")
+                Log.d("AuthRepository", "Login Firebase OK")
 
                 // ⭐ BUSCAR usuario en la API
                 try {
@@ -41,40 +41,40 @@ class AuthRepository(private val userPrefs: UserPreferences) {
 
                     if (response.isSuccessful && response.body() != null) {
                         val usuario = response.body()!!
-                        Log.d("AuthRepository", "✅ Usuario encontrado en API")
+                        Log.d("AuthRepository", "Usuario encontrado en API")
 
-                        // ⭐ VALIDAR que tenga idUsuario
+                        //  VALIDAR que tenga idUsuario
                         if (usuario.idUsuario == null) {
                             return@withContext Result.failure(
                                 Exception("Tu cuenta no está completa. Por favor, completa tu registro desde la aplicación.")
                             )
                         }
 
-                        // ⭐ GUARDAR EN SHAREDPREFERENCES
+                        //  GUARDAR EN SHAREDPREFERENCES
                         userPrefs.saveUser(
                             email = usuario.email,
                             nombre = usuario.nombre,
                             idUsuario = usuario.idUsuario
                         )
-                        Log.d("AuthRepository", "💾 Usuario guardado - ID: ${usuario.idUsuario}")
+                        Log.d("AuthRepository", "Usuario guardado - ID: ${usuario.idUsuario}")
 
                         Result.success(usuario)
                     } else {
-                        // ⭐ Usuario NO existe en la BD → Error claro
-                        Log.w("AuthRepository", "⚠️ Usuario no existe en la base de datos")
+                        //  Usuario NO existe en la BD → Error claro
+                        Log.w("AuthRepository", "Usuario no existe en la base de datos")
                         return@withContext Result.failure(
                             Exception("Tu cuenta no está registrada. Por favor, completa el registro en la aplicación primero.")
                         )
                     }
                 } catch (e: Exception) {
-                    Log.e("AuthRepository", "❌ Error API: ${e.message}")
+                    Log.e("AuthRepository", " Error API: ${e.message}")
                     return@withContext Result.failure(
                         Exception("Error al verificar tu cuenta. Verifica tu conexión a internet.")
                     )
                 }
 
             } catch (e: Exception) {
-                Log.e("AuthRepository", "❌ Firebase falló, intentando API")
+                Log.e("AuthRepository", " Firebase falló, intentando API")
                 loginSoloAPI(email, contrasena)
             }
         }
@@ -91,16 +91,16 @@ class AuthRepository(private val userPrefs: UserPreferences) {
 
             if (response.isSuccessful && response.body() != null) {
                 val usuario = response.body()!!
-                Log.d("AuthRepository", "✅ Login API OK")
+                Log.d("AuthRepository", "Login API OK")
 
-                // ⭐ GUARDAR EN SHAREDPREFERENCES
+                // GUARDAR EN SHAREDPREFERENCES
                 if (usuario.idUsuario != null) {
                     userPrefs.saveUser(
                         email = usuario.email,
                         nombre = usuario.nombre,
                         idUsuario = usuario.idUsuario
                     )
-                    Log.d("AuthRepository", "💾 Usuario guardado - ID: ${usuario.idUsuario}")
+                    Log.d("AuthRepository", " Usuario guardado - ID: ${usuario.idUsuario}")
                 }
 
                 Result.success(usuario)
@@ -108,7 +108,7 @@ class AuthRepository(private val userPrefs: UserPreferences) {
                 Result.failure(Exception("Credenciales inválidas"))
             }
         } catch (e: Exception) {
-            Log.e("AuthRepository", "❌ Error: ${e.message}")
+            Log.e("AuthRepository", " Error: ${e.message}")
             Result.failure(Exception("Error al iniciar sesión: ${e.message}"))
         }
     }
@@ -130,14 +130,14 @@ class AuthRepository(private val userPrefs: UserPreferences) {
     ): Result<UsuarioDTO> {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d("AuthRepository", "📝 Registrando: $email")
+                Log.d("AuthRepository", " Registrando: $email")
 
                 // 1. Crear en Firebase
                 val firebaseResult = firebaseAuth.createUserWithEmailAndPassword(email, contrasena).await()
                 val firebaseUser = firebaseResult.user
                     ?: return@withContext Result.failure(Exception("Error al crear cuenta en Firebase"))
 
-                Log.d("AuthRepository", "✅ Creado en Firebase")
+                Log.d("AuthRepository", " Creado en Firebase")
 
                 // 2. Guardar en API
                 try {
@@ -162,34 +162,34 @@ class AuthRepository(private val userPrefs: UserPreferences) {
 
                     if (response.isSuccessful && response.body() != null) {
                         val usuario = response.body()!!
-                        Log.d("AuthRepository", "✅ Registrado en API")
+                        Log.d("AuthRepository", " Registrado en API")
 
-                        // ⭐ GUARDAR EN SHAREDPREFERENCES
+                        //  GUARDAR EN SHAREDPREFERENCES
                         if (usuario.idUsuario != null) {
                             userPrefs.saveUser(
                                 email = usuario.email,
                                 nombre = usuario.nombre,
                                 idUsuario = usuario.idUsuario
                             )
-                            Log.d("AuthRepository", "💾 Usuario guardado - ID: ${usuario.idUsuario}")
+                            Log.d("AuthRepository", " Usuario guardado - ID: ${usuario.idUsuario}")
                         }
 
                         Result.success(usuario)
                     } else {
-                        // Si falla la API, eliminar de Firebase
-                        Log.e("AuthRepository", "❌ Error al registrar en API")
+
+                        Log.e("AuthRepository", " Error al registrar en API")
                         firebaseUser.delete().await()
                         Result.failure(Exception("Error al registrar en la base de datos. Tu cuenta no fue creada."))
                     }
                 } catch (e: Exception) {
-                    Log.e("AuthRepository", "❌ Error API: ${e.message}")
+                    Log.e("AuthRepository", " Error API: ${e.message}")
                     // Si falla la API, eliminar de Firebase
                     firebaseUser.delete().await()
                     Result.failure(Exception("Error al registrar: ${e.message}. Tu cuenta no fue creada."))
                 }
 
             } catch (e: Exception) {
-                Log.e("AuthRepository", "❌ Error: ${e.message}")
+                Log.e("AuthRepository", " Error: ${e.message}")
                 Result.failure(Exception("Error al crear cuenta: ${e.message}"))
             }
         }
@@ -205,14 +205,14 @@ class AuthRepository(private val userPrefs: UserPreferences) {
                 val response = apiService.obtenerPorEmail(email)
 
                 if (response.isSuccessful && response.body() != null) {
-                    Log.d("AuthRepository", "✅ Encontrado")
+                    Log.d("AuthRepository", " Encontrado")
                     Result.success(response.body()!!)
                 } else {
-                    Log.w("AuthRepository", "⚠️ No encontrado")
+                    Log.w("AuthRepository", " No encontrado")
                     Result.failure(Exception("Usuario no encontrado"))
                 }
             } catch (e: Exception) {
-                Log.e("AuthRepository", "❌ Error: ${e.message}")
+                Log.e("AuthRepository", " Error: ${e.message}")
                 Result.failure(e)
             }
         }
@@ -222,7 +222,7 @@ class AuthRepository(private val userPrefs: UserPreferences) {
      * Logout
      */
     fun logout() {
-        Log.d("AuthRepository", "🚪 Logout")
+        Log.d("AuthRepository", " Logout")
         firebaseAuth.signOut()
         userPrefs.clearUser()
     }

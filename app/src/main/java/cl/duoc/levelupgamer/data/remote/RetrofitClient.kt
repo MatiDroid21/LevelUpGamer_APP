@@ -10,10 +10,11 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-
+    //hola si ves esto
     // ========== CONFIGURACIÓN ==========
 
     //en localhost revisar bien porque en casa la ip es 192.168.0.101
+    //10.15.211.127
     private const val USUARIOS_BASE_URL = "http://3.151.223.174:8080/"
     private const val PRODUCTOS_BASE_URL = "http://3.151.223.174:8081/"
     private const val PEDIDOS_BASE_URL = "http://3.151.223.174:8083/"
